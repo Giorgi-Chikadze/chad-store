@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Review, Product, Cart
+from products.models import Review, Product, Cart, ProductTag, FavoriteProduct
 
 
 class ProductSerializer(serializers.Serializer):
@@ -41,50 +41,37 @@ class ReviewSerializer(serializers.Serializer):
     
 
 
-class CartSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField(write_only=True)
-    quantity = serializers.IntegerField(default=1)
+class CartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart
+        exclude = ['created_at', 'updated_at']
+
 
     def validate_product_id(self, value):
         if not Product.objects.filter(id=value).exists():
             raise serializers.ValidationError("Invalid product_id. Product does not exist.")
         return value
-    
+    #ამოწმებს პროდუქტი არსებობს თუ არა მონაცემთა ბაზაში
 
 
-class ProductTagSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField(write_only=True)
-    tag_name = serializers.CharField()
+class ProductTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductTag
+        exclude = ['created_at', 'updated_at']
 
-    def validate(self, data):
-        product_id = data.get("product_id")
-        tag_name = data.get("tag_name")
+        
+        
 
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            raise serializers.ValidationError({"product_id": "Invalid product_id. Product does not exist."})
 
-        # Check if the tag already exists for the specific product
-        if product.tags.filter(name=tag_name).exists():
-            raise serializers.ValidationError({"tag_name": "This tag already exists for the given product."})
+class FavoriteProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteProduct
+        exclude = ['created_at', 'updated_at']
 
-        return data
-    
     
     def validate_product_id(self, value):
-        if not Product.objects.filter(id=value).exists():
+        if  not Product.objects.filter(id=value).exists():
             raise serializers.ValidationError("Invalid product_id. Product does not exist.")
         return value
-
-
-
-
-
-class FavoriteProductSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField()
-
-    def validate_product_id(self, value):
-        if not Product.objects.filter(id=value).exists():
-            raise serializers.ValidationError("Invalid product_id. Product does not exist.")
-        return value
+    
+    #ამოწმებს პროდუქტი არსებობს თუ არა მონაცემთა ბაზაში
