@@ -59,8 +59,6 @@ class ProductTagSerializer(serializers.ModelSerializer):
         model = ProductTag
         exclude = ['created_at', 'updated_at']
 
-        
-        
 
 
 class FavoriteProductSerializer(serializers.ModelSerializer):
