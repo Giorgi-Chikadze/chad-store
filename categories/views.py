@@ -1,28 +1,23 @@
-from django.shortcuts import render
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import GenericAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin, RetrieveModelMixin, DestroyModelMixin
 
 from categories.models import Category, CategoryImage
 from .serializers import CategoryDetailSerializer, CategoryImageSerializer, CategorySerializer
 
-class CategoryListView(ListModelMixin, GenericAPIView):
+class CategoryListView(ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
     
 
-class CategoryDetailView(RetrieveModelMixin, GenericAPIView):
+class CategoryDetailView(ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategoryDetailSerializer
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
     
 
-class CategoryImageViewSet(ListModelMixin, CreateModelMixin, GenericAPIView):
+class CategoryImageViewSet(ListCreateAPIView):
     queryset = CategoryImage.objects.all()
     serializer_class = CategoryImageSerializer
 
@@ -31,9 +26,5 @@ class CategoryImageViewSet(ListModelMixin, CreateModelMixin, GenericAPIView):
 
         return self.queryset.filter(category=cateogory_id)
     
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+
     
