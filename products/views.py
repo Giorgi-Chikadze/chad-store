@@ -9,7 +9,7 @@ from products.serializers import ProductSerializer, ProductImageSerializer, Revi
 
 
 
-class ProductViewSet(ModelViewSet):
+class ProductViewSet(CreateModelMixin, DestroyModelMixin, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
@@ -45,23 +45,20 @@ class TagViewSet(ListModelMixin, GenericViewSet):
         
             
 
-class FavoriteProductViewSet(ModelViewSet):
+class FavoriteProductViewSet(ListModelMixin, RetrieveModelMixin, CreateModelMixin ,DestroyModelMixin, GenericViewSet):
     queryset = FavoriteProduct.objects.all()
     serializer_class = FavoriteProductSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'delete']
-
-
+    
     def get_queryset(self):
         queryset = self.queryset.filter(user=self.request.user)
         return queryset
 
 
-class ProductImageViewSet(ModelViewSet):
+class ProductImageViewSet(ListModelMixin, CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'delete']
 
     def get_queryset(self):
         return self.queryset.filter(product__id=self.kwargs['product_pk'])
