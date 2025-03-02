@@ -1,13 +1,14 @@
-from rest_framework.generics import GenericAPIView
-from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.filters import SearchFilter
 from categories.models import Category, CategoryImage
 from .serializers import CategoryDetailSerializer, CategoryImageSerializer, CategorySerializer
 
 class CategoryListView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['name']
 
     
 
