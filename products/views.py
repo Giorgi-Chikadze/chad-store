@@ -1,27 +1,28 @@
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+from django.core.exceptions import PermissionDenied
+from products.filters import ProductFilter
 from .pagination import ProductPagination
-from products.models import Product, Review, Cart, ProductImage, ProductTag, FavoriteProduct
-from products.serializers import ProductSerializer, ProductImageSerializer, ReviewSerializer, CartSerializer, ProductTagSerializer, FavoriteProductSerializer
+from products.models import Product, Review, Cart, ProductImage, ProductTag, FavoriteProduct, CartItem
+from products.serializers import ProductSerializer, ProductImageSerializer, ReviewSerializer, CartSerializer, ProductTagSerializer, FavoriteProductSerializer, CartItemSerializer
 
 
 
-class ProductViewSet(CreateModelMixin, DestroyModelMixin, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     pagination_class = ProductPagination
-    filterset_fields = ['categories', 'price']
+    filterset_class = ProductFilter
     search_fields = ['name', 'description']
 
 
 
-class ReviewViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
@@ -31,16 +32,16 @@ class ReviewViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     def get_queryset(self):
         return self.queryset.filter(product_id=self.kwargs['product_pk'])
     
+    def perform_update(self, serializer):
+        review = self.get_object()
+        if review.user != self.request.user:
+            raise PermissionDenied('you do not have permission to update this review')
+        serializer.save()
 
-
-class CartViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self, *args, **kwargs):
-        queryset = self.queryset.filter(user=self.request.user)
-        return queryset
+    def perform_destroy(self, instance):
+        if instance.user != self.request.user:
+            raise PermissionDenied('you do not have permission to delete this review')
+        instance.delete()
 
 
 
@@ -72,9 +73,35 @@ class ProductImageViewSet(ListModelMixin, CreateModelMixin, RetrieveModelMixin, 
     
 
 
+
+class CartItemViewSet(ModelViewSet):
+    queryset = CartItem.objects.all()
+    serializer_class = CartItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(cart__user=self.request.user)
     
+    def perform_destroy(self, instance):
+        if instance.cart.user != self.request.user:
+            raise PermissionDenied('you do not have permission to delete this item')
+        instance.delete()
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.cart.user != self.request.user:
+            raise PermissionDenied('you do not have permission to update this item')
+        
+        serializer.save()
 
             
 
 
+class CartViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self, *args, **kwargs):
+        queryset = self.queryset.filter(user=self.request.user)
+        return queryset
