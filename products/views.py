@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from django.core.exceptions import PermissionDenied
 from products.filters import ProductFilter
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle, ScopedRateThrottle
 from .pagination import ProductPagination
 from products.models import Product, Review, Cart, ProductImage, ProductTag, FavoriteProduct, CartItem
 from products.serializers import ProductSerializer, ProductImageSerializer, ReviewSerializer, CartSerializer, ProductTagSerializer, FavoriteProductSerializer, CartItemSerializer
@@ -19,6 +20,8 @@ class ProductViewSet(ModelViewSet):
     pagination_class = ProductPagination
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
+    throttle_classes = [UserRateThrottle]
+
 
 
 
@@ -57,6 +60,8 @@ class FavoriteProductViewSet(ListModelMixin, RetrieveModelMixin, CreateModelMixi
     queryset = FavoriteProduct.objects.all()
     serializer_class = FavoriteProductSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'likes'
     
     def get_queryset(self):
         queryset = self.queryset.filter(user=self.request.user)
