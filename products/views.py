@@ -9,6 +9,7 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle, Scoped
 from .pagination import ProductPagination
 from products.models import Product, Review, Cart, ProductImage, ProductTag, FavoriteProduct, CartItem
 from products.serializers import ProductSerializer, ProductImageSerializer, ReviewSerializer, CartSerializer, ProductTagSerializer, FavoriteProductSerializer, CartItemSerializer
+from rest_framework.decorators import action
 
 
 
@@ -22,6 +23,21 @@ class ProductViewSet(ModelViewSet):
     search_fields = ['name', 'description']
     throttle_classes = [UserRateThrottle]
 
+    def perform_update(self, serializer):
+        product = self.get_object()
+        if product.user != self.request.user:
+            raise PermissionDenied("You don't have permission to update this product")
+        serializer.save()
+
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
+    def my_products(self, request):
+        user_products = Product.objects.filter(user=request.user)
+        page = self.paginate_queryset(user_products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(user_products, many=True)
+        return Response(serializer.data) 
 
 
 

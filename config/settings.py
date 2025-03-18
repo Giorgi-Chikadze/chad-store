@@ -45,6 +45,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'django_filters',
+    'drf_yasg',
+
 ]
 
 MIDDLEWARE = [
@@ -145,4 +147,17 @@ REST_FRAMEWORK = {
         'user': '1000/day',
         'likes': '30/minute'
     }
+}
+
+
+SWAGGER_SETTINGS = {
+    'USE_SESSSION_AUTH':False,
+    'SECURITY_DEFINITIONS': {
+        'Bearer':{
+            'type':'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "შეიყვანეთ JWT ტოკენი: Bearer <ტოკენი>",
+        }
+    },
 }
