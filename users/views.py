@@ -6,6 +6,7 @@ from users.permissions import IsObjectOwnerOrReadOnly
 from django.core.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.status import HTTP_204_NO_CONTENT
 
 User = get_user_model()
 
@@ -33,6 +34,11 @@ class ProfileViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated, IsObjectOwnerOrReadOnly]
     serializer_class = ProfileSerializer
+
+    def perform_destroy(self, instance):
+        if instance == self.request.user:
+            instance.delete()
+            return Response(status=HTTP_204_NO_CONTENT)
 
 
 
