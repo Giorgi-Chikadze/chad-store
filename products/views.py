@@ -10,7 +10,7 @@ from .pagination import ProductPagination
 from products.models import Product, Review, Cart, ProductImage, ProductTag, FavoriteProduct, CartItem
 from products.serializers import ProductSerializer, ProductImageSerializer, ReviewSerializer, CartSerializer, ProductTagSerializer, FavoriteProductSerializer, CartItemSerializer
 from rest_framework.decorators import action
-
+from products.permissions import IsObjectOwnerOrReadOnly
 
 
 class ProductViewSet(ModelViewSet):
@@ -44,7 +44,7 @@ class ProductViewSet(ModelViewSet):
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsObjectOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['rating']
 
