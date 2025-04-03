@@ -1,12 +1,20 @@
 from rest_framework import mixins, viewsets
 from django.contrib.auth import get_user_model
-from users.serializers import RegisterSerializer, ProfileSerializer
+from users.serializers import RegisterSerializer, ProfileSerializer, PasswordSerializer, PasswordResetConfirmSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from users.permissions import IsObjectOwnerOrReadOnly
 from django.core.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.status import HTTP_204_NO_CONTENT
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from rest_framework import status, serializers
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 User = get_user_model()
 
@@ -42,4 +50,60 @@ class ProfileViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.
 
 
 
+class PasswordResetRequestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = PasswordSerializer
+    
+    def create(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
 
+            #Token Generation
+
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            #Password reset URL generation
+
+            reset_url = request.build_absolute_uri(
+                reverse('password_reset_confirm', kwargs={"uidb64":uid, "token":token})
+            )
+
+            #send mail
+
+            send_mail(
+                "პაროლის აღდგენა",
+                f"დააჭირე ბმულს რომ აღადგინო პაროლი {reset_url}",
+                'noreply@example.com',
+                [user.email],
+                fail_silently=False,
+            )
+
+            return Response(
+                {"message": "ბმული გაგზავნილია ელფოსტაზე"}, status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class PasswordResetConfirmViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = PasswordResetConfirmSerializer
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('uidb64', openapi.IN_PATH, description="User ID (base64 encoded)", type=openapi.TYPE_STRING),
+            openapi.Parameter('token', openapi.IN_PATH, description="Password reset token", type=openapi.TYPE_STRING),
+        ]
+    )
+
+    def create(self, request, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message":"Password succesfully updated"}, status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
