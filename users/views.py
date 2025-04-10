@@ -15,6 +15,9 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import status, serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import random
+from django.utils import timezone
+from users.models import EmailVerificationCode
 
 User = get_user_model()
 
@@ -35,6 +38,25 @@ class RegisterView(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            self.send_verification_code(user)
+            return Response({"detail":"User registered succesfully and verification code sent to email"})
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+    
+    def send_verification_code(self, user):
+        code = str(random.randint(100000, 999999))
+
+        EmailVerificationCode.objects.update_or_create(
+            user=user,
+            defaults = {"code":code, "created_at": timezone.now()}
+        )
+        subject = 'your verification code'
+        message = f"hello {user.username}, your verification code is {code}"
+        send_mail(subject, message, 'no-reply@example.com', [user.email])
 
 
 
