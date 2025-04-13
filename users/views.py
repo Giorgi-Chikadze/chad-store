@@ -1,6 +1,6 @@
 from rest_framework import mixins, viewsets
 from django.contrib.auth import get_user_model
-from users.serializers import RegisterSerializer, ProfileSerializer, PasswordSerializer, PasswordResetConfirmSerializer
+from users.serializers import RegisterSerializer, ProfileSerializer, PasswordSerializer, PasswordResetConfirmSerializer, EmailCodeResendSerializer, EmailCodeConfirmSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from users.permissions import IsObjectOwnerOrReadOnly
 from django.core.exceptions import PermissionDenied
@@ -18,6 +18,7 @@ from drf_yasg import openapi
 import random
 from django.utils import timezone
 from users.models import EmailVerificationCode
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -57,6 +58,40 @@ class RegisterView(mixins.CreateModelMixin, viewsets.GenericViewSet):
         subject = 'your verification code'
         message = f"hello {user.username}, your verification code is {code}"
         send_mail(subject, message, 'no-reply@example.com', [user.email])
+
+
+    @action(detail=False, methods=["post"], url_path="resend_code", serializer_class=EmailCodeResendSerializer)
+    def resend_code(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = serializer.validated_data["user"]
+        existing = EmailVerificationCode.objects.filter(user=user).first()
+        if existing:
+            time_diff  = timezone.now - existing.created_at
+            if time_diff < timedelta(minutes=1):
+                wait_seconds = 60 - int(time_diff.total_second())
+                return Response(
+                    {"detail":f"please wait {wait_seconds} seconds before requesting new code."},   
+                    status = 429
+                )
+            
+        self.send_verification_code(user)
+        return Response({"detail":"Verification code resent succesfully"})
+    
+    @action(detail=False, methods=['post'], url_path='confirm_code', serializer_class=EmailCodeConfirmSerializer)
+    def confirm_code(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            user.is_active = True
+            user.save()
+            return Response({"message": 'მომხმარებელი წარმატებით არის გააქტიურებული'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+        
 
 
 
