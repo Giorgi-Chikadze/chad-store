@@ -46,7 +46,7 @@ class RegisterView(mixins.CreateModelMixin, viewsets.GenericViewSet):
         if serializer.is_valid():
             user = serializer.save()
             self.send_verification_code(user)
-            return Response({"detail":"User registered succesfully and verification code sent to email"})
+            return Response({"detail":"User registered succesfully and verification code sent to email"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
     
     def send_verification_code(self, user):
